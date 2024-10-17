@@ -44,13 +44,6 @@ jobs:
           project_name: "PasswordSafeClient"
           verbose: true
 
-      # Upload the updated README.md as an artifact
-      - name: Upload updated README.md as an artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: updated-readme
-          path: README.md
-
   download-and-save-artifact:
     runs-on: ubuntu-latest
     needs: update-readme
