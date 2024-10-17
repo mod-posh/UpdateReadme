@@ -54,5 +54,4 @@ try {
 
         # Re-throw the error
         throw
-    }
 }
