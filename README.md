@@ -72,11 +72,9 @@ jobs:
    
 2. **Run the Custom Action**: The `UpdateReadme` action updates the `README.md` file by adding or modifying the badges. It takes the `project_name` as input and defaults to the repository's `owner` and `name`.
 
-3. **Upload the Artifact**: The updated `README.md` is uploaded as an artifact using `actions/upload-artifact`.
+3. **Download the Artifact**: In the second job (`download-and-save-artifact`), the updated `README.md` is downloaded using `actions/download-artifact`.
 
-4. **Download the Artifact**: In the second job (`download-and-save-artifact`), the updated `README.md` is downloaded using `actions/download-artifact`.
-
-5. **Commit the README.md to the Repository**: The updated `README.md` is moved back into the repository, and then a commit is made with the updated file, pushing the changes back to the repository.
+4. **Commit the README.md to the Repository**: The updated `README.md` is moved back into the repository, and then a commit is made with the updated file, pushing the changes back to the repository.
 
 
 ### Key Points:
