@@ -44,40 +44,17 @@ jobs:
           project_name: "PasswordSafeClient"
           verbose: true
 
-  download-and-save-artifact:
-    runs-on: ubuntu-latest
-    needs: update-readme
-
-    steps:
-      # Download the artifact from the previous job
-      - name: Download updated README.md artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: updated-readme
-
-      # Move the downloaded README.md to the repository
-      - name: Write the README.md to the repository
-        run: |
-          mv updated-readme/README.md ./README.md
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git add README.md
-          git commit -m "Update README with badges"
-          git push
 ```
 
 ## Workflow Explanation
 
 1. **Checkout the Repository**: The first step checks out the repository to access the `README.md` file.
-   
+
 2. **Run the Custom Action**: The `UpdateReadme` action updates the `README.md` file by adding or modifying the badges. It takes the `project_name` as input and defaults to the repository's `owner` and `name`.
 
-3. **Download the Artifact**: In the second job (`download-and-save-artifact`), the updated `README.md` is downloaded using `actions/download-artifact`.
+3. **Commit the README.md to the Repository**: The updated `README.md` is moved back into the repository, and then a commit is made with the updated file, pushing the changes back to the repository.
 
-4. **Commit the README.md to the Repository**: The updated `README.md` is moved back into the repository, and then a commit is made with the updated file, pushing the changes back to the repository.
+### Key Points
 
-
-### Key Points:
-- **Artifact Handling**: The example workflow demonstrates how to use the action to update the `README.md` and then download the artifact, committing the updated file back to the repository.
 - **Flexibility**: The GitHub owner and repo inputs default to the current repository’s values, so users don’t need to specify them unless they are running the action for another repository.
 - **Committing Changes**: After downloading the artifact, the workflow adds the `README.md` to the repository and commits the changes.

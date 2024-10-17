@@ -31,8 +31,10 @@ runs:
         $VerboseFlag = if (${{ inputs.verbose }}) { '-Verbose' } else { '' }
         & $env:GITHUB_ACTION_PATH\\update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $env:VERBOSE
 
-    - name: Upload updated README.md as an artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: updated-readme
-        path: README.md
+    - name: Commit and push updated README.md
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add README.md
+        git commit -m "Update README with badges"
+        git push
