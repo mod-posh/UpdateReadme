@@ -22,7 +22,7 @@ try {
     # Extract PackageId
     $PackageId = $Project.Project.PropertyGroup.PackageId
     if ($Verbose) {
-      Write-Host "PackageId: $($PackageId)"
+        Write-Host "PackageId: $($PackageId)"
     }
 
     # Define path to README file
