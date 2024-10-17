@@ -15,9 +15,18 @@ if ($Verbose) {
 }
 
 try {
-    # Try to load the project file
-    $ProjectPath = "$($RootPath)/$($ProjectName)/$($ProjectName).csproj"
-    $Project = [xml](Get-Content -Path $ProjectPath)
+    # Recursively search for the .csproj file
+    Write-Host "Searching for .csproj file for project: $ProjectName"
+    $ProjectFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$ProjectName.csproj" -ErrorAction Stop | Select-Object -First 1
+
+    if (-not $ProjectFile) {
+        throw "Project file not found."
+    }
+
+    Write-Host "Found project file: $($ProjectFile.FullName)"
+
+    # Load the .csproj file as XML
+    $Project = [xml](Get-Content -Path $ProjectFile.FullName)
 
     # Extract PackageId
     $PackageId = $Project.Project.PropertyGroup.PackageId
