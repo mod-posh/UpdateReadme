@@ -29,7 +29,7 @@ runs:
       shell: pwsh
       run: |
         $VerboseFlag = if (${{ inputs.verbose }}) { '-Verbose' } else { '' }
-        pwsh ./update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $VerboseFlag
+        & $env:GITHUB_ACTION_PATH\\update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $env:VERBOSE
 
     - name: Upload updated README.md as an artifact
       uses: actions/upload-artifact@v3
