@@ -1,0 +1,27 @@
+name: 'Update README with Badges'
+description: 'A GitHub Action to update the README.md with badges'
+author: 'Your Name'
+
+inputs:
+  project_name:
+    description: 'The project name'
+    required: true
+  github_owner:
+    description: 'GitHub repository owner'
+    required: true
+  github_repo:
+    description: 'GitHub repository name'
+    required: true
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run PowerShell script
+      shell: pwsh
+      run: |
+        $VerboseFlag = if (${{ inputs.verbose }}) { '-Verbose' } else { '' }
+        pwsh ./update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $VerboseFlag
