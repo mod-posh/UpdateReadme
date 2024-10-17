@@ -32,6 +32,7 @@ runs:
         & $env:GITHUB_ACTION_PATH\\update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $env:VERBOSE
 
     - name: Commit and push updated README.md
+      shell: bash
       run: |
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
