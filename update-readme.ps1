@@ -16,7 +16,7 @@ if ($Verbose) {
 
 try {
     # Try to load the project file
-    $ProjectPath = "$($RootPath)/$($ProjectName)/$($ProjectName)"
+    $ProjectPath = "$($RootPath)/$($ProjectName)/$($ProjectName).csproj"
     $Project = [xml](Get-Content -Path $ProjectPath)
 
     # Extract PackageId
