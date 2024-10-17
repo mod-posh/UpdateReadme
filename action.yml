@@ -1,6 +1,6 @@
 name: 'Update README with Badges'
 description: 'A GitHub Action to update the README.md with badges'
-author: 'Your Name'
+author: 'Jeffrey Patton'
 
 inputs:
   project_name:
