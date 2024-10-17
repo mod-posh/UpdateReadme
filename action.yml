@@ -8,10 +8,12 @@ inputs:
     required: true
   github_owner:
     description: 'GitHub repository owner'
-    required: true
+    required: false
+    default: ${{ github.repository_owner }}  # Set the default to the current repo owner
   github_repo:
     description: 'GitHub repository name'
-    required: true
+    required: false
+    default: ${{ github.repository }}  # Set the default to the current repo name
   verbose:
     description: 'Enable verbose output'
     required: false
