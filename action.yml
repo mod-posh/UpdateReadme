@@ -37,5 +37,8 @@ runs:
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
         git add README.md
-        git commit -m "Update README with badges"
-        git push
+        # Commit changes if any, and ignore if there are no changes
+        git commit -m "Update README with badges" || echo "No changes to commit"
+
+        # Push the changes if any were committed
+        git push || echo "No changes to push"
