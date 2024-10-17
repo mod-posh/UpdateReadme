@@ -46,14 +46,11 @@ try {
     Get-Content -Path "$($RootPath)/$($ProjectName).md" | Out-File $readMe.FullName -Append
 
 } catch {
-    if ($_.Exception -is [System.IO.FileNotFoundException]) {
         Write-Host "Error: File not found - $ProjectPath"
         
         # Recurse the root path to search for the missing file
         Write-Host "Recursing $RootPath to search for the project file..."
-        Get-ChildItem -Path $RootPath -Recurse -Filter "$ProjectName.xml" | ForEach-Object {
-            Write-Host "Found file: $($_.FullName)"
-        }
+        (Get-ChildItem -Path $RootPath -Recurse).FullName 
 
         # Re-throw the error
         throw
