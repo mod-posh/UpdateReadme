@@ -35,7 +35,7 @@ try {
     }
 
     # Define path to README file
-    $readMe = Get-Item -Path "$($RootPath)\README.md"
+    $readMe = Get-Item -Path "$($RootPath)/README.md"
 
     # Create badges and table content
     $TableHeaders = "| Latest Version | Nuget.org | Issues | Testing | License | Discord |"
@@ -52,16 +52,28 @@ try {
     Write-Output $Columns | Out-File $readMe.FullName -Append
     Write-Output "| $($VersionBadge) | $($GalleryBadge) | $($IssueBadge) | $($TestingBadge) | $($LicenseBadge) | $($DiscordBadge) |" | Out-File $readMe.FullName -Append
 
-    # Append additional content from the project's markdown file
-    Get-Content -Path "$($RootPath)/$($ProjectName).md" | Out-File $readMe.FullName -Append
+    # Case-insensitive search for a markdown file matching the expected name
+    Write-Host "Searching for a markdown file matching '$ProjectName.md' (case-insensitive)..."
+    $ProjectMarkdownFile = Get-ChildItem -Path $RootPath -Recurse -Filter "*.md" |
+        Where-Object { $_.Name -ieq "$ProjectName.md" } |
+        Select-Object -First 1
+
+    if ($ProjectMarkdownFile) {
+        Write-Host "Appending content from $($ProjectMarkdownFile.FullName)"
+        Get-Content -Path $ProjectMarkdownFile.FullName | Out-File $readMe.FullName -Append
+    } else {
+        Write-Host "Warning: No matching markdown file found for '$ProjectName.md'. Skipping this step."
+    }
 
 } catch {
-        Write-Host "Error: File not found - $ProjectPath"
+    Write-Host "Error: $_"
 
-        # Recurse the root path to search for the missing file
-        Write-Host "Recursing $RootPath to search for the project file..."
-        (Get-ChildItem -Path $RootPath -Recurse).FullName
+    # If an error occurs, list all markdown files in the repo for debugging
+    Write-Host "Recursing $RootPath to check available markdown files..."
+    Get-ChildItem -Path $RootPath -Recurse -Filter "*.md" | ForEach-Object {
+        Write-Host "Found markdown file: $($_.FullName)"
+    }
 
-        # Re-throw the error
-        throw
+    # Re-throw the error
+    throw
 }
