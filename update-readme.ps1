@@ -15,21 +15,51 @@ if ($Verbose) {
 }
 
 try {
-    # Recursively search for the .csproj file
-    Write-Host "Searching for .csproj file for project: $ProjectName"
-    $ProjectFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$ProjectName.csproj" -ErrorAction Stop | Select-Object -First 1
-
-    if (-not $ProjectFile) {
-        throw "Project file not found."
+    # Step 1: Try Directory.Build.props first
+    # Step 2: Fallback to <ProjectName>.csproj if needed
+    # Step 3: Fail if still no PackageId
+    $PackageId = $null
+    $BuildPropsPath = Join-Path -Path $RootPath -ChildPath "Directory.Build.props"
+    if (Test-Path $BuildPropsPath) {
+        Write-Host "Attempting to read PackageId from Directory.Build.props"
+        try {
+            $Props = [xml](Get-Content $BuildPropsPath)
+            $PackageId = $Props.Project.PropertyGroup.PackageId
+            if ($PackageId) {
+                Write-Host "Found PackageId in Directory.Build.props: $PackageId"
+            } else {
+                Write-Host "Directory.Build.props does not contain a PackageId."
+            }
+        } catch {
+            Write-Host "Failed to parse Directory.Build.props: $_"
+        }
+    } else {
+        Write-Host "Directory.Build.props not found at root."
     }
+    if (-not $PackageId) {
+        Write-Host "Falling back to search for $ProjectName.csproj"
+        try {
+            $ProjectFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$ProjectName.csproj" -ErrorAction Stop | Select-Object -First 1
 
-    Write-Host "Found project file: $($ProjectFile.FullName)"
-
-    # Load the .csproj file as XML
-    $Project = [xml](Get-Content -Path $ProjectFile.FullName)
-
-    # Extract PackageId
-    $PackageId = $Project.Project.PropertyGroup.PackageId
+            if ($ProjectFile) {
+                Write-Host "Found project file: $($ProjectFile.FullName)"
+                $ProjectXml = [xml](Get-Content -Path $ProjectFile.FullName)
+                $PackageId = $ProjectXml.Project.PropertyGroup.PackageId
+                if ($PackageId) {
+                    Write-Host "Found PackageId in $($ProjectFile.Name): $PackageId"
+                } else {
+                    Write-Host "PackageId not found in $($ProjectFile.Name)"
+                }
+            } else {
+                Write-Host "No matching .csproj found."
+            }
+        } catch {
+            Write-Host "Error locating .csproj: $_"
+        }
+    }
+    if (-not $PackageId) {
+        throw "Unable to determine PackageId from Directory.Build.props or $ProjectName.csproj"
+    }
     if ($Verbose) {
         Write-Host "PackageId: $($PackageId)"
     }
