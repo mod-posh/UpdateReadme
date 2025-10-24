@@ -1,36 +1,15 @@
-name: 'Update README with Badges'
-description: 'A GitHub Action to update the README.md with badges'
-author: 'Jeffrey Patton'
-
-inputs:
-  project_name:
-    description: 'The project name'
-    required: true
-  project_names:
-    description: 'Optional list of project names (comma-separated or JSON array) for NuGet badges'
-    required: false
-    default: ''
-  github_owner:
-    description: 'GitHub repository owner'
-    required: false
-    default: ${{ github.repository_owner }}  # Set the default to the current repo owner
-  github_repo:
-    description: 'GitHub repository name'
-    required: false
-    default: ${{ github.repository }}  # Set the default to the current repo name
-  verbose:
-    description: 'Enable verbose output'
-    required: false
-    default: false
-
 runs:
   using: "composite"
   steps:
     - name: Checkout the repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0              # <-- unshallow so we can pull/rebase
 
     - name: Run PowerShell script
       shell: pwsh
+      env:
+        PROJECT_NAMES: ${{ inputs.project_names }}
       run: |
         $VerboseFlag = if ('${{ inputs.verbose }}' -eq 'true') { '-Verbose' } else { '' }
         & $env:GITHUB_ACTION_PATH/update-readme.ps1 `
@@ -44,11 +23,27 @@ runs:
     - name: Commit and push updated README.md
       shell: bash
       run: |
+        set -e
+
+        branch="${GITHUB_REF_NAME:-main}"
+
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
+
         git add README.md
-        # Commit changes if any, and ignore if there are no changes
+        # don't fail if there's nothing to commit
         git commit -m "Update README with badges" || echo "No changes to commit"
 
-        # Push the changes if any were committed
-        git push || echo "No changes to push"
+        # make sure we can rebase (unshallow if needed)
+        git fetch --prune --unshallow || true
+        git fetch origin "$branch"
+
+        # rebase our commit(s) on top of the remote branch; if nothing to rebase, it's fine
+        git pull --rebase origin "$branch" || {
+          echo "Rebase failed (likely no local commits or conflict)."
+          # if a rebase was started and failed due to no commits, abort safely
+          git rebase --abort 2>/dev/null || true
+        }
+
+        # push; if nothing changed, don't fail the job
+        git push origin HEAD:"$branch" || echo "No changes to push"
