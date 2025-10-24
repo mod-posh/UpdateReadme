@@ -6,6 +6,10 @@ inputs:
   project_name:
     description: 'The project name'
     required: true
+  project_names:
+    description: 'Optional list of project names (comma-separated or JSON array) for NuGet badges'
+    required: false
+    default: ''
   github_owner:
     description: 'GitHub repository owner'
     required: false
@@ -28,8 +32,14 @@ runs:
     - name: Run PowerShell script
       shell: pwsh
       run: |
-        $VerboseFlag = if (${{ inputs.verbose }}) { '-Verbose' } else { '' }
-        & $env:GITHUB_ACTION_PATH\\update-readme.ps1 -ProjectName '${{ inputs.project_name }}' -RootPath '${{ github.workspace }}' -GithubOwner '${{ inputs.github_owner }}' -GithubRepo '${{ inputs.github_repo }}' $env:VERBOSE
+        $VerboseFlag = if ('${{ inputs.verbose }}' -eq 'true') { '-Verbose' } else { '' }
+        & $env:GITHUB_ACTION_PATH/update-readme.ps1 `
+          -ProjectName '${{ inputs.project_name }}' `
+          -ProjectNames "$env:PROJECT_NAMES" `
+          -RootPath '${{ github.workspace }}' `
+          -GithubOwner '${{ inputs.github_owner }}' `
+          -GithubRepo '${{ inputs.github_repo }}' `
+          $VerboseFlag
 
     - name: Commit and push updated README.md
       shell: bash
