@@ -97,7 +97,7 @@ try {
             Write-Verbose "Falling back to project name as PackageId: $pkgId"
         }
 
-        $NugetBadges.Add("[![Nuget.org](https://img.shields.io/nuget/dt/$pkgId?label=$pkgId)](https://www.nuget.org/packages/$pkgId)")
+        $NugetBadges.Add("[![Nuget.org](https://img.shields.io/nuget/dt/$($pkgId)?label=$($pkgId))](https://www.nuget.org/packages/$($pkgId))")
     }
 
     # --- Build other badges / table -------------------------------------------------
