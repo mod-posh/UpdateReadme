@@ -1,3 +1,28 @@
+name: 'Update README with Badges'
+description: 'A GitHub Action to update the README.md with badges'
+author: 'Jeffrey Patton'
+
+inputs:
+  project_name:
+    description: 'The project name'
+    required: true
+  project_names:
+    description: 'Optional list of project names (comma-separated or JSON array) for NuGet badges'
+    required: false
+    default: ''
+  github_owner:
+    description: 'GitHub repository owner'
+    required: false
+    default: ${{ github.repository_owner }}  # Set the default to the current repo owner
+  github_repo:
+    description: 'GitHub repository name'
+    required: false
+    default: ${{ github.repository }}  # Set the default to the current repo name
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: false
+
 runs:
   using: "composite"
   steps:
