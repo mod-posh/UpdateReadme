@@ -11,6 +11,18 @@ This is a custom GitHub Action that automatically updates the `README.md` file w
 - **Smart Badge Generation**: Creates appropriate download/version badges for each platform
 - **Custom Documentation**: Appends project-specific markdown content
 
+## Requirements
+
+⚠️ **Important**: This action requires the repository to be checked out before use. Always include `actions/checkout` with `fetch-depth: 0` in your workflow before using this action.
+
+```yaml
+- name: Checkout repository
+  uses: actions/checkout@v4
+  with:
+    fetch-depth: 0  # Required for git operations
+    token: ${{ secrets.GITHUB_TOKEN }}
+```
+
 ## Inputs
 
 - `project_name` (required): The base name of your primary project (without file extension)
@@ -146,6 +158,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0  # Required for git operations
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update README with badges
