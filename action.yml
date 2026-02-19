@@ -21,7 +21,7 @@ inputs:
   verbose:
     description: 'Enable verbose output'
     required: false
-    default: false
+    default: 'verbose'
 
 runs:
   using: "composite"

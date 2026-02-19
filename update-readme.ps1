@@ -4,16 +4,17 @@ param (
     [string]$RootPath,
     [string]$GithubOwner,
     [string]$GithubRepo,
-    [switch]$Verbose
+    [string]$Verbose
 )
 
 # Verbose plumbing
-$VerbosePreference = if ($Verbose) { 'Continue' } else { 'SilentlyContinue' }
-Write-Verbose "ProjectName: $ProjectName"
-Write-Verbose "RootPath: $RootPath"
-Write-Verbose "GithubOwner: $GithubOwner"
-Write-Verbose "GithubRepo: $GithubRepo"
-Write-Verbose "ProjectNames (raw): $ProjectNames"
+if ($Verbose -eq 'verbose'){
+    Write-Verbose "ProjectName: $ProjectName"
+    Write-Verbose "RootPath: $RootPath"
+    Write-Verbose "GithubOwner: $GithubOwner"
+    Write-Verbose "GithubRepo: $GithubRepo"
+    Write-Verbose "ProjectNames (raw): $ProjectNames"
+}
 
 try {
     # --- Parse multi-project list ---------------------------------------------------
@@ -23,19 +24,19 @@ try {
         if ($trimmed.StartsWith('[')) {
             try {
                 $ResolvedProjects = (ConvertFrom-Json -InputObject $trimmed) | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ }
-                Write-Verbose "Parsed ProjectNames from JSON: $($ResolvedProjects -join ', ')"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Parsed ProjectNames from JSON: $($ResolvedProjects -join ', ')"}
             } catch {
-                Write-Verbose "Failed to parse JSON ProjectNames; will try CSV. Error: $_"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Failed to parse JSON ProjectNames; will try CSV. Error: $_"}
             }
         }
         if (-not $ResolvedProjects -and $trimmed) {
             $ResolvedProjects = $trimmed -split '\s*,\s*' | Where-Object { $_ }
-            Write-Verbose "Parsed ProjectNames from CSV: $($ResolvedProjects -join ', ')"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Parsed ProjectNames from CSV: $($ResolvedProjects -join ', ')"}
         }
     }
     if (-not $ResolvedProjects -or $ResolvedProjects.Count -eq 0) {
         $ResolvedProjects = @($ProjectName)
-        Write-Verbose "No multi-project list provided; using ProjectName for NuGet badge: $ProjectName"
+        if ($Verbose -eq 'verbose'){Write-Verbose "No multi-project list provided; using ProjectName for NuGet badge: $ProjectName"}
     }
 
     # --- Try Directory.Build.props once (shared values) -----------------------------
@@ -44,18 +45,18 @@ try {
     if (Test-Path $BuildPropsPath) {
         try {
             $Props = [xml](Get-Content $BuildPropsPath)
-            Write-Verbose "Loaded Directory.Build.props: $BuildPropsPath"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Loaded Directory.Build.props: $BuildPropsPath"}
         } catch {
-            Write-Verbose "Failed to parse Directory.Build.props: $_"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Failed to parse Directory.Build.props: $_"}
         }
     } else {
-        Write-Verbose "Directory.Build.props not found at root."
+        if ($Verbose -eq 'verbose'){Write-Verbose "Directory.Build.props not found at root."}
     }
 
     # --- Auto-detect project types and generate appropriate badges -------------------
     $GalleryBadges = New-Object System.Collections.Generic.List[string]
     foreach ($p in $ResolvedProjects) {
-        Write-Verbose "Auto-detecting project type for '$p'..."
+        if ($Verbose -eq 'verbose'){Write-Verbose "Auto-detecting project type for '$p'..."}
 
         $badge = $null
         $projectId = $null
@@ -63,7 +64,7 @@ try {
         # Check for PowerShell module first (.psd1 file)
         $psd1File = Get-ChildItem -Path $RootPath -Recurse -Filter "$p.psd1" -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($psd1File) {
-            Write-Verbose "Found PowerShell manifest: $($psd1File.FullName)"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Found PowerShell manifest: $($psd1File.FullName)"}
             try {
                 # Parse the .psd1 file to get module name (usually the filename itself)
                 $manifestData = Import-PowerShellDataFile -Path $psd1File.FullName -ErrorAction SilentlyContinue
@@ -74,9 +75,9 @@ try {
                 }
                 $projectId = $moduleName
                 $badge = "[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/$($projectId)?label=$($projectId))](https://www.powershellgallery.com/packages/$($projectId))"
-                Write-Verbose "Generated PowerShell Gallery badge for module: $projectId"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Generated PowerShell Gallery badge for module: $projectId"}
             } catch {
-                Write-Verbose "Failed to parse PowerShell manifest '$($psd1File.FullName)', using filename: $_"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Failed to parse PowerShell manifest '$($psd1File.FullName)', using filename: $_"}
                 $projectId = $psd1File.BaseName
                 $badge = "[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/$($projectId)?label=$($projectId))](https://www.powershellgallery.com/packages/$($projectId))"
             }
@@ -85,30 +86,30 @@ try {
         else {
             $projFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$p.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
             if ($projFile) {
-                Write-Verbose "Found .NET project: $($projFile.FullName)"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Found .NET project: $($projFile.FullName)"}
                 try {
                     $projXml = [xml](Get-Content -Path $projFile.FullName)
                     $projectId = $projXml.Project.PropertyGroup.PackageId
                     if ($projectId) {
-                        Write-Verbose "PackageId from csproj: $projectId"
+                        if ($Verbose -eq 'verbose'){Write-Verbose "PackageId from csproj: $projectId"}
                     } else {
                         $asm = $projXml.Project.PropertyGroup.AssemblyName
                         if ($asm) {
                             $projectId = $asm
-                            Write-Verbose "AssemblyName used as PackageId: $projectId"
+                            if ($Verbose -eq 'verbose'){Write-Verbose "AssemblyName used as PackageId: $projectId"}
                         } else {
                             $projectId = $projFile.BaseName
-                            Write-Verbose "Using csproj base name as PackageId: $projectId"
+                            if ($Verbose -eq 'verbose'){Write-Verbose "Using csproj base name as PackageId: $projectId"}
                         }
                     }
                 } catch {
-                    Write-Verbose "Failed reading csproj '$($projFile.FullName)': $_"
+                    if ($Verbose -eq 'verbose'){Write-Verbose "Failed reading csproj '$($projFile.FullName)': $_"}
                     $projectId = $projFile.BaseName
                 }
                 $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
-                Write-Verbose "Generated NuGet badge for package: $projectId"
+                if ($Verbose -eq 'verbose'){Write-Verbose "Generated NuGet badge for package: $projectId"}
             } else {
-                Write-Verbose "No .psd1 or .csproj found for '$p'"
+                if ($Verbose -eq 'verbose'){Write-Verbose "No .psd1 or .csproj found for '$p'"}
             }
         }
 
@@ -116,14 +117,14 @@ try {
         if (-not $projectId -and $Props -and $Props.Project.PropertyGroup.PackageId) {
             $projectId = $Props.Project.PropertyGroup.PackageId
             $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
-            Write-Verbose "Using PackageId from Directory.Build.props: $projectId"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Using PackageId from Directory.Build.props: $projectId"}
         }
 
         # Final fallback: project name itself (assume NuGet)
         if (-not $projectId) {
             $projectId = $p
             $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
-            Write-Verbose "Falling back to project name as NuGet PackageId: $projectId"
+            if ($Verbose -eq 'verbose'){Write-Verbose "Falling back to project name as NuGet PackageId: $projectId"}
         }
 
         if ($badge) {
@@ -136,7 +137,7 @@ try {
     if (-not (Test-Path $readMePath)) {
         # create an empty file so Set-Content works without error
         New-Item -ItemType File -Path $readMePath -Force | Out-Null
-        Write-Verbose "Created README.md at $readMePath"
+        if ($Verbose -eq 'verbose'){Write-Verbose "Created README.md at $readMePath"}
     }
 
     $TableHeaders = "| Latest Version | Gallery | Issues | Testing | License | Discord |"
@@ -154,16 +155,16 @@ try {
     Add-Content -Path $readMePath -Value "| $VersionBadge | $GalleryBadge | $IssueBadge | $TestingBadge | $LicenseBadge | $DiscordBadge |"
 
     # --- Optional: include a project-specific markdown file (case-insensitive) -----
-    Write-Verbose "Searching for markdown matching '$ProjectName.md' (case-insensitive)..."
+    if ($Verbose -eq 'verbose'){Write-Verbose "Searching for markdown matching '$ProjectName.md' (case-insensitive)..."}
     $ProjectMarkdownFile = Get-ChildItem -Path $RootPath -Recurse -Filter "*.md" |
         Where-Object { $_.Name -ieq "$ProjectName.md" } |
         Select-Object -First 1
 
     if ($ProjectMarkdownFile) {
-        Write-Verbose "Appending content from $($ProjectMarkdownFile.FullName)"
+        if ($Verbose -eq 'verbose'){Write-Verbose "Appending content from $($ProjectMarkdownFile.FullName)"}
         Get-Content -Path $ProjectMarkdownFile.FullName | Out-File $readMePath -Append
     } else {
-        Write-Verbose "No matching markdown file found for '$ProjectName.md'. Skipping."
+        if ($Verbose -eq 'verbose'){Write-Verbose "No matching markdown file found for '$ProjectName.md'. Skipping."}
     }
 
 } catch {
