@@ -1,23 +1,129 @@
 # Update README with Badges
 
-This is a custom GitHub Action that updates the `README.md` file with badges for a given project. The action automatically generates badges for the latest version, NuGet, GitHub issues, license, and Discord server.
+This is a custom GitHub Action that automatically updates the `README.md` file with badges for your projects. It supports both .NET projects (NuGet Gallery) and PowerShell modules (PowerShell Gallery) with auto-detection based on project files.
+
+## Features
+
+- **Auto-Detection**: Automatically detects project type based on file extensions
+  - `.psd1` files → PowerShell Gallery badges
+  - `.csproj` files → NuGet badges
+- **Multi-Project Support**: Handle multiple projects in one repository
+- **Smart Badge Generation**: Creates appropriate download/version badges for each platform
+- **Custom Documentation**: Appends project-specific markdown content
 
 ## Inputs
 
-- `project_name` (required): The name of the project being updated.
-- `github_owner` (optional): The GitHub repository owner. Defaults to the repository owner where the action is being run.
-- `github_repo` (optional): The GitHub repository name. Defaults to the repository name where the action is being run.
-- `verbose` (optional): If true, enables verbose output during the action's execution. Defaults to `false`.
+- `project_name` (required): The base name of your primary project (without file extension)
+- `project_names` (optional): List of additional project names for multi-project repositories (comma-separated or JSON array)
+- `github_owner` (optional): The GitHub repository owner. Defaults to the repository owner where the action is being run
+- `github_repo` (optional): The GitHub repository name. Defaults to the repository name where the action is being run
+- `verbose` (optional): Enable detailed logging during execution. Defaults to `false`
 
 ## Outputs
 
-This action updates the `README.md` file in the repository and uploads it as an artifact.
+The action generates a badge table in your `README.md` with:
 
-## Example Usage
+- **Latest Version**: GitHub tag-based version badge
+- **Gallery**: Download count from NuGet/PowerShell Gallery (auto-detected)
+- **Issues**: GitHub issues count
+- **Testing**: GitHub Actions workflow status
+- **License**: GitHub license badge
+- **Discord**: Custom Discord server badge
 
-### Basic Example
+## Usage Examples
 
-Below is an example workflow that uses this action to update the `README.md` file, uploads the updated file as an artifact, and then downloads the artifact to the local repository.
+### Single PowerShell Module
+
+For a repository with a PowerShell module:
+
+```bash
+MyRepo/
+├── MyModule/
+│   ├── MyModule.psd1    # PowerShell manifest
+│   └── MyModule.psm1    # PowerShell module
+└── README.md
+```
+
+```yaml
+- name: Update README with badges
+  uses: mod-posh/UpdateReadme@main
+  with:
+    project_name: "MyModule"
+```
+
+### Single .NET Project
+
+For a repository with a .NET project:
+
+```bash
+MyRepo/
+├── src/
+│   └── MyLibrary.csproj
+└── README.md
+```
+
+```yaml
+- name: Update README with badges
+  uses: mod-posh/UpdateReadme@main
+  with:
+    project_name: "MyLibrary"
+```
+
+### Complex PowerShell Module Structure
+
+For modules with naming conventions like yours:
+
+```bash
+AdoMetrics/                    # Repository root
+├── AdoMetrics/               # Module subfolder
+│   ├── ModPosh.AdoMetrics.psd1  # Manifest file
+│   └── ModPosh.AdoMetrics.psm1  # Module file
+└── README.md
+```
+
+```yaml
+- name: Update README with badges
+  uses: mod-posh/UpdateReadme@main
+  with:
+    project_name: "ModPosh.AdoMetrics"  # Use the .psd1 filename (without extension)
+```
+
+### Multiple Projects (Mixed Types)
+
+For repositories containing both PowerShell modules and .NET projects:
+
+```yaml
+- name: Update README with badges
+  uses: mod-posh/UpdateReadme@main
+  with:
+    project_name: "MainProject"
+    project_names: "MyPSModule,MyLibrary,AnotherModule"  # CSV format
+```
+
+Or using JSON array format:
+
+```yaml
+- name: Update README with badges
+  uses: mod-posh/UpdateReadme@main
+  with:
+    project_name: "MainProject"
+    project_names: '["MyPSModule", "MyLibrary", "AnotherModule"]'  # JSON format
+```
+
+### With Custom Documentation
+
+Create a markdown file named `{project_name}.md` to include project-specific documentation:
+
+```bash
+MyRepo/
+├── MyModule.psd1
+├── MyModule.md     # This content will be appended to README
+└── README.md       # Generated badges + MyModule.md content
+```
+
+### Complete Workflow Example
+
+Below is a complete workflow example:
 
 ```yaml
 # .github/workflows/update-readme.yml
@@ -27,26 +133,60 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for pushing changes back
 
     steps:
-      # Checkout the repository to access README.md
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Run the custom action to update README.md with badges
-      - name: Update README using custom action
+      - name: Update README with badges
         uses: mod-posh/UpdateReadme@main
         with:
-          project_name: "PasswordSafeClient"
+          project_name: "ModPosh.AdoMetrics"
           verbose: true
-
 ```
 
-## Workflow Explanation
+## How It Works
+
+1. **Project Detection**: The action searches recursively for project files
+   - Looks for `{project_name}.psd1` → PowerShell Gallery badge
+   - Looks for `{project_name}.csproj` → NuGet badge
+
+2. **Badge Generation**: Creates appropriate badges based on detected project type
+   - PowerShell Gallery: `https://img.shields.io/powershellgallery/dt/{ModuleName}`
+   - NuGet: `https://img.shields.io/nuget/dt/{PackageId}`
+
+3. **Content Assembly**:
+   - Generates badge table
+   - Appends content from `{project_name}.md` if it exists
+   - Commits changes back to repository
+
+## Notes
+
+- **File Naming**: Use the exact filename (without extension) as your `project_name`
+- **Recursive Search**: The action searches subdirectories for project files
+- **Module Names**: For PowerShell modules, the module name is extracted from the `.psd1` manifest
+- **Package IDs**: For .NET projects, Package ID is read from the `.csproj` file
+- **Permissions**: Ensure your workflow has `contents: write` permission to commit changes
+
+## Troubleshooting
+
+Enable verbose logging to see which files are found and what badges are generated:
+
+```yaml
+with:
+  project_name: "YourProject"
+  verbose: true
+```
 
 1. **Checkout the Repository**: The first step checks out the repository to access the `README.md` file.
 
