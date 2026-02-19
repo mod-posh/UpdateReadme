@@ -52,52 +52,83 @@ try {
         Write-Verbose "Directory.Build.props not found at root."
     }
 
-    # --- Resolve NuGet package IDs for each project (no functions) ------------------
-    $NugetBadges = New-Object System.Collections.Generic.List[string]
+    # --- Auto-detect project types and generate appropriate badges -------------------
+    $GalleryBadges = New-Object System.Collections.Generic.List[string]
     foreach ($p in $ResolvedProjects) {
-        Write-Verbose "Resolving PackageId for project '$p'..."
+        Write-Verbose "Auto-detecting project type for '$p'..."
 
-        $pkgId = $null
+        $badge = $null
+        $projectId = $null
 
-        # Prefer specific project .csproj if present
-        $projFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$p.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($projFile) {
-            Write-Verbose "Found csproj: $($projFile.FullName)"
+        # Check for PowerShell module first (.psd1 file)
+        $psd1File = Get-ChildItem -Path $RootPath -Recurse -Filter "$p.psd1" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($psd1File) {
+            Write-Verbose "Found PowerShell manifest: $($psd1File.FullName)"
             try {
-                $projXml = [xml](Get-Content -Path $projFile.FullName)
-                $pkgId = $projXml.Project.PropertyGroup.PackageId
-                if ($pkgId) {
-                    Write-Verbose "PackageId from csproj: $pkgId"
-                } else {
-                    $asm = $projXml.Project.PropertyGroup.AssemblyName
-                    if ($asm) {
-                        $pkgId = $asm
-                        Write-Verbose "AssemblyName used as PackageId: $pkgId"
-                    } else {
-                        $pkgId = $projFile.BaseName
-                        Write-Verbose "Using csproj base name as PackageId: $pkgId"
-                    }
+                # Parse the .psd1 file to get module name (usually the filename itself)
+                $manifestData = Import-PowerShellDataFile -Path $psd1File.FullName -ErrorAction SilentlyContinue
+                $moduleName = $manifestData.ModuleName
+                if (-not $moduleName) {
+                    # Fallback to the .psd1 filename without extension
+                    $moduleName = $psd1File.BaseName
                 }
+                $projectId = $moduleName
+                $badge = "[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/$($projectId)?label=$($projectId))](https://www.powershellgallery.com/packages/$($projectId))"
+                Write-Verbose "Generated PowerShell Gallery badge for module: $projectId"
             } catch {
-                Write-Verbose "Failed reading csproj '$($projFile.FullName)': $_"
+                Write-Verbose "Failed to parse PowerShell manifest '$($psd1File.FullName)', using filename: $_"
+                $projectId = $psd1File.BaseName
+                $badge = "[![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/$($projectId)?label=$($projectId))](https://www.powershellgallery.com/packages/$($projectId))"
             }
-        } else {
-            Write-Verbose "No csproj found matching '$p.csproj'"
+        }
+        # If no .psd1, check for .NET project (.csproj file)
+        else {
+            $projFile = Get-ChildItem -Path $RootPath -Recurse -Filter "$p.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($projFile) {
+                Write-Verbose "Found .NET project: $($projFile.FullName)"
+                try {
+                    $projXml = [xml](Get-Content -Path $projFile.FullName)
+                    $projectId = $projXml.Project.PropertyGroup.PackageId
+                    if ($projectId) {
+                        Write-Verbose "PackageId from csproj: $projectId"
+                    } else {
+                        $asm = $projXml.Project.PropertyGroup.AssemblyName
+                        if ($asm) {
+                            $projectId = $asm
+                            Write-Verbose "AssemblyName used as PackageId: $projectId"
+                        } else {
+                            $projectId = $projFile.BaseName
+                            Write-Verbose "Using csproj base name as PackageId: $projectId"
+                        }
+                    }
+                } catch {
+                    Write-Verbose "Failed reading csproj '$($projFile.FullName)': $_"
+                    $projectId = $projFile.BaseName
+                }
+                $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
+                Write-Verbose "Generated NuGet badge for package: $projectId"
+            } else {
+                Write-Verbose "No .psd1 or .csproj found for '$p'"
+            }
         }
 
-        # Fallback to Directory.Build.props (shared PackageId) if still empty
-        if (-not $pkgId -and $Props -and $Props.Project.PropertyGroup.PackageId) {
-            $pkgId = $Props.Project.PropertyGroup.PackageId
-            Write-Verbose "Using PackageId from Directory.Build.props: $pkgId"
+        # Fallback to Directory.Build.props (shared PackageId) if still no project ID
+        if (-not $projectId -and $Props -and $Props.Project.PropertyGroup.PackageId) {
+            $projectId = $Props.Project.PropertyGroup.PackageId
+            $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
+            Write-Verbose "Using PackageId from Directory.Build.props: $projectId"
         }
 
-        # Final fallback: project name itself
-        if (-not $pkgId) {
-            $pkgId = $p
-            Write-Verbose "Falling back to project name as PackageId: $pkgId"
+        # Final fallback: project name itself (assume NuGet)
+        if (-not $projectId) {
+            $projectId = $p
+            $badge = "[![Nuget.org](https://img.shields.io/nuget/dt/$($projectId)?label=$($projectId))](https://www.nuget.org/packages/$($projectId))"
+            Write-Verbose "Falling back to project name as NuGet PackageId: $projectId"
         }
 
-        $NugetBadges.Add("[![Nuget.org](https://img.shields.io/nuget/dt/$($pkgId)?label=$($pkgId))](https://www.nuget.org/packages/$($pkgId))")
+        if ($badge) {
+            $GalleryBadges.Add($badge)
+        }
     }
 
     # --- Build other badges / table -------------------------------------------------
@@ -108,7 +139,7 @@ try {
         Write-Verbose "Created README.md at $readMePath"
     }
 
-    $TableHeaders = "| Latest Version | Nuget.org | Issues | Testing | License | Discord |"
+    $TableHeaders = "| Latest Version | Gallery | Issues | Testing | License | Discord |"
     $Columns      = "|-----------------|-----------------|----------------|----------------|----------------|----------------|"
     $VersionBadge = "[![Latest Version](https://img.shields.io/github/v/tag/$GithubOwner/$ProjectName)](https://github.com/$GithubRepo/tags)"
     $IssueBadge   = "[![GitHub issues](https://img.shields.io/github/issues/$GithubOwner/$ProjectName)](https://github.com/$GithubRepo/issues)"
@@ -116,7 +147,7 @@ try {
     $LicenseBadge = "[![GitHub license](https://img.shields.io/github/license/$GithubOwner/$ProjectName)](https://github.com/$GithubRepo/blob/master/LICENSE)"
     $DiscordBadge = "[![Discord Server](https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5493894cf60b300587_full_logo_white_RGB.svg)](https://discord.com/channels/1044305359021555793/1044305781627035811)"
 
-    $GalleryBadge = ($NugetBadges -join '<br/>')
+    $GalleryBadge = ($GalleryBadges -join '<br/>')
 
     Set-Content -Path $readMePath -Value $TableHeaders
     Add-Content -Path $readMePath -Value $Columns

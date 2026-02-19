@@ -1,5 +1,5 @@
 name: 'Update README with Badges'
-description: 'A GitHub Action to update the README.md with badges'
+description: 'A GitHub Action to update the README.md with badges for .NET packages (NuGet) and PowerShell modules (PowerShell Gallery)'
 author: 'Jeffrey Patton'
 
 inputs:
@@ -7,7 +7,7 @@ inputs:
     description: 'The project name'
     required: true
   project_names:
-    description: 'Optional list of project names (comma-separated or JSON array) for NuGet badges'
+    description: 'Optional list of project names (comma-separated or JSON array) for generating badges. Supports .NET projects (.csproj) and PowerShell modules (.psd1)'
     required: false
     default: ''
   github_owner:
