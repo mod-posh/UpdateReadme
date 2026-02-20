@@ -10,6 +10,11 @@ inputs:
     description: 'Optional list of project names (comma-separated or JSON array) for generating badges. Supports .NET projects (.csproj) and PowerShell modules (.psd1)'
     required: false
     default: ''
+  write_mode:
+    description: "How to persist RELEASE.md: direct (commit+push), none (no git changes). pr will be added later."
+    required: false
+    type: string
+    default: 'direct'
   github_owner:
     description: 'GitHub repository owner'
     required: false
@@ -42,6 +47,7 @@ runs:
 
     - name: Commit and push updated README.md
       shell: bash
+      if: ${{ inputs.write_mode == 'direct' }}
       run: |
         set -e
 
